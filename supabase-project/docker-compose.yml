@@ -27,6 +27,17 @@ services:
     depends_on:
       analytics:
         condition: service_healthy
+    networks:
+      - default
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.studio.rule=Host(`studio.notiustin.com`)"
+      - "traefik.http.routers.studio.entrypoints=websecure"
+      - "traefik.http.routers.studio.tls.certresolver=cloudflare"
+      - "traefik.http.services.studio.loadbalancer.server.port=3000"
+      - "traefik.http.routers.studio.middlewares=studio-auth"
+      - "traefik.http.middlewares.studio-auth.basicauth.users=supabase:$$apr1$$g8h1kx81$$nCB2x0Ff3usohILDmQOEY."
     environment:
       # Binds nestjs listener to both IPv4 and IPv6 network interfaces
       HOSTNAME: "::"
@@ -47,6 +58,10 @@ services:
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
+
+      # Studio authentication
+      DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
+      DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
 
       # LOGFLARE_API_KEY is deprecated
       LOGFLARE_API_KEY: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
@@ -87,6 +102,18 @@ services:
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
     # https://unix.stackexchange.com/a/294837
     entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
+    networks:
+      - default
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      
+      # Supabase API (Kong routes all requests)
+      - "traefik.http.routers.supabase-api.rule=Host(`supabase.notiustin.com`)"
+      - "traefik.http.routers.supabase-api.entrypoints=websecure"
+      - "traefik.http.routers.supabase-api.tls=true"
+      - "traefik.http.routers.supabase-api.tls.certresolver=cloudflare"
+      - "traefik.http.services.supabase-api.loadbalancer.server.port=8000"
 
   auth:
     container_name: supabase-auth
@@ -484,6 +511,19 @@ services:
       - "label=disable"
 
   # Update the DATABASE_URL if you are using an external Postgres database
+  smtp4dev:
+    container_name: supabase-smtp4dev
+    image: rnwood/smtp4dev:latest
+    restart: unless-stopped
+    ports:
+      - 1080:80
+      - ${SMTP_PORT}:25/tcp
+    environment:
+      RELAY_AUTO_LINK_ENABLE_FOR_ALL_ORIGINS: "true"
+      DB_SQLITE_CONNECTION_STRING: Data Source=/smtp4dev/db.sqlite;Cache=Shared
+    volumes:
+      - smtp4dev-data:/smtp4dev
+
   supavisor:
     container_name: supabase-pooler
     image: supabase/supavisor:2.7.3
@@ -539,3 +579,10 @@ services:
 
 volumes:
   db-config:
+  smtp4dev-data:
+
+networks:
+  default:
+    name: supabase_network_supabase-project
+  traefik-public:
+    external: true

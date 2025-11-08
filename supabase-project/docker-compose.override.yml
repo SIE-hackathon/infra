@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  kong:
+    networks:
+      - default
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.supabase-api.rule=Host(`supabase.notiustin.com`)"
+      - "traefik.http.routers.supabase-api.entrypoints=websecure"
+      - "traefik.http.routers.supabase-api.service=supabase-api"
+      - "traefik.http.routers.supabase-api.tls.certresolver=cloudflare"
+      - "traefik.http.services.supabase-api.loadbalancer.server.port=8000"
+
+  studio:
+    networks:
+      - default
+      - traefik-public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.studio.rule=Host(`studio.notiustin.com`)"
+      - "traefik.http.routers.studio.entrypoints=websecure"
+      - "traefik.http.routers.studio.service=studio"
+      - "traefik.http.routers.studio.tls.certresolver=cloudflare"
+      - "traefik.http.services.studio.loadbalancer.server.port=3000"
+
+networks:
+  traefik-public:
+    external: true

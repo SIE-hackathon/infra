@@ -267,17 +267,20 @@ services:
       #      - ::1
       #    deny: []
 
-  ## Protected Dashboard - catch all remaining routes
-  - name: dashboard
-    _comment: 'Studio: /* -> http://studio:3000/*'
-    url: http://studio:3000/
-    routes:
-      - name: dashboard-all
-        strip_path: true
-        paths:
-          - /
-    plugins:
-      - name: cors
-      - name: basic-auth
-        config:
-          hide_credentials: true
+  ## Protected Dashboard - DISABLED (Studio now served directly via Traefik)
+  # - name: dashboard
+  #   _comment: 'Studio: /* -> http://studio:3000/*'
+  #   url: http://studio:3000/
+  #   routes:
+  #     - name: dashboard-all
+  #       strip_path: false
+  #       paths:
+  #         - /
+  #       protocols:
+  #         - http
+  #         - https
+  #   plugins:
+  #     - name: basic-auth
+  #       config:
+  #         hide_credentials: false
+  #     - name: cors
